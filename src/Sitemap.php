@@ -91,7 +91,7 @@ class Sitemap extends BaseObject
 		                . ' http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"'
 		                . ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 		foreach ($this->indexSitemap as $item) {
-			$str .= '<url><loc>' . $this->domain . '/' . basename($item['file']) . '</loc>';
+			$str .= '<url><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
 			if ($item['date']) {
 				$str .= '<lastmod>' . date('Y-m-d', strtotime($item['date'])) . '</lastmod>';
 			}
