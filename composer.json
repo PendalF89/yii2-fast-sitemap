@@ -1,0 +1,22 @@
+{
+    "name": "pendalf89/yii2-fast-sitemap",
+    "description": "Yii2 fast sitemap component",
+    "type": "yii2-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Zabolotskikh Boris",
+            "email": "zabolotskich@bk.ru"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable" : true,
+    "require": {
+        "yiisoft/yii2": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "pendalf89\\fast_sitemap\\": "src/"
+        }
+    }
+}
