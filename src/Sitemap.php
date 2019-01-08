@@ -93,7 +93,7 @@ class Sitemap extends BaseObject
 		foreach ($this->indexSitemap as $item) {
 			$str .= '<url><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
 			if ($item['date']) {
-				$str .= '<lastmod>' . date('Y-m-d', strtotime($item['date'])) . '</lastmod>';
+				$str .= '<lastmod>' . date('c', strtotime($item['date'])) . '</lastmod>';
 			}
 			$str      .= '<priority>' . (rtrim(sprintf('%.5f', $priority), '.0')) . '</priority>';
 			$str      .= '</url>';
