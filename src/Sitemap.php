@@ -84,17 +84,13 @@ class Sitemap extends BaseObject
 
 			return ($a > $b) ? -1 : 1;
 		});
-		$priorityStep = 1 / count($this->indexSitemap);
-		$priority     = 1;
 		$str          = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 		foreach ($this->indexSitemap as $item) {
 			$str .= '<sitemap><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
 			if ($item['date']) {
 				$str .= '<lastmod>' . date('c', strtotime($item['date'])) . '</lastmod>';
 			}
-			$str      .= '<priority>' . (rtrim(sprintf('%.5f', $priority), '.0')) . '</priority>';
 			$str      .= '</sitemap>';
-			$priority -= $priorityStep;
 		}
 		$str  .= '</sitemapindex>';
 		$file = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $this->indexSitemapName . '.xml';
