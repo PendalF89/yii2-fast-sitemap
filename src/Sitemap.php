@@ -15,7 +15,7 @@ class Sitemap extends BaseObject
 	/**
 	 * @var bool Whether to compress files with gzip
 	 */
-	public $compressWithGzip = true;
+	public $compressWithGzip = false;
 
 	/**
 	 * @var string Index sitemap name
@@ -86,20 +86,17 @@ class Sitemap extends BaseObject
 		});
 		$priorityStep = 1 / count($this->indexSitemap);
 		$priority     = 1;
-		$str          = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-		                . ' xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9'
-		                . ' http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"'
-		                . ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+		$str          = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">';
 		foreach ($this->indexSitemap as $item) {
-			$str .= '<url><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
+			$str .= '<sitemap><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
 			if ($item['date']) {
 				$str .= '<lastmod>' . date('c', strtotime($item['date'])) . '</lastmod>';
 			}
 			$str      .= '<priority>' . (rtrim(sprintf('%.5f', $priority), '.0')) . '</priority>';
-			$str      .= '</url>';
+			$str      .= '</sitemap>';
 			$priority -= $priorityStep;
 		}
-		$str  .= '</urlset>';
+		$str  .= '</sitemapindex>';
 		$file = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $this->indexSitemapName . '.xml';
 
 		if ($this->compressWithGzip) {
@@ -159,10 +156,7 @@ class Sitemap extends BaseObject
 	{
 		$priorityStep = 1 / count($items);
 		$priority     = 1;
-		$str          = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-		                . ' xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9'
-		                . ' http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"'
-		                . ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+		$str          = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">';
 		foreach ($items as $item) {
 			$str .= '<url><loc>' . $this->domain . $sitemap->getUrl($item) . '</loc>';
 			if ($lastmod = $sitemap->getLastmod($item)) {
