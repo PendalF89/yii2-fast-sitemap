@@ -84,13 +84,13 @@ class Sitemap extends BaseObject
 
 			return ($a > $b) ? -1 : 1;
 		});
-		$str          = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+		$str = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 		foreach ($this->indexSitemap as $item) {
 			$str .= '<sitemap><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
 			if ($item['date']) {
 				$str .= '<lastmod>' . date('c', strtotime($item['date'])) . '</lastmod>';
 			}
-			$str      .= '</sitemap>';
+			$str .= '</sitemap>';
 		}
 		$str  .= '</sitemapindex>';
 		$file = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $this->indexSitemapName . '.xml';
@@ -150,17 +150,13 @@ class Sitemap extends BaseObject
 	 */
 	protected function toString($items, SitemapInterface $sitemap)
 	{
-		$priorityStep = 1 / count($items);
-		$priority     = 1;
-		$str          = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+		$str = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 		foreach ($items as $item) {
 			$str .= '<url><loc>' . $this->domain . $sitemap->getUrl($item) . '</loc>';
 			if ($lastmod = $sitemap->getLastmod($item)) {
 				$str .= '<lastmod>' . $lastmod . '</lastmod>';
 			}
-			$str      .= '<priority>' . (rtrim(sprintf('%.5f', $priority), '.0')) . '</priority>';
-			$str      .= '</url>';
-			$priority -= $priorityStep;
+			$str .= '</url>';
 		}
 		$str .= '</urlset>';
 
