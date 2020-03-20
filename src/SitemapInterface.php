@@ -2,6 +2,8 @@
 
 namespace pendalf89\fast_sitemap;
 
+use yii\db\Query;
+
 interface SitemapInterface
 {
 	/**
@@ -17,7 +19,7 @@ interface SitemapInterface
 	 * @param int $offset
 	 * @param int $limit
 	 *
-	 * @return array
+	 * @return array|Query
 	 */
 	public function getItems($offset, $limit);
 
