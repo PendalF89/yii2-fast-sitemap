@@ -4,6 +4,8 @@ namespace pendalf89\fast_sitemap;
 
 use Yii;
 use yii\base\BaseObject;
+use yii\db\mssql\PDO;
+use yii\db\Query;
 
 class Sitemap extends BaseObject
 {
@@ -38,6 +40,11 @@ class Sitemap extends BaseObject
 	public $domain;
 
 	/**
+	 * @var string db connection name
+	 */
+	public $connectionName = 'db';
+
+	/**
 	 * @var array Index sitemap data
 	 */
 	protected $indexSitemap = [];
@@ -51,18 +58,36 @@ class Sitemap extends BaseObject
 	{
 		$offset  = 0;
 		$counter = 0;
-		do {
-			if ($items = $sitemap->getItems($offset, $this->maxUrlsPerFile)) {
+		// If we have Query, than we will be use batch() method.
+		if (($query = $sitemap->getItems($offset, $this->maxUrlsPerFile)) instanceof Query) {
+			// this setting need for enable batch() method
+			// see more: https://rmcreative.ru/blog/post/yii2-batch#c11555
+			Yii::$app->{$this->connectionName}->open();
+			Yii::$app->{$this->connectionName}->pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+			foreach ($query->batch($this->maxUrlsPerFile) as $items) {
 				$file                 = $this->write($this->toString($items, $sitemap), $sitemap, $counter);
 				$this->indexSitemap[] = [
 					'sitemap' => $sitemap,
 					'date'    => $sitemap->getLastmod($items[0]),
 					'file'    => $file,
 				];
-				$offset               += $this->maxUrlsPerFile;
 				$counter++;
 			}
-		} while ($items);
+			Yii::$app->{$this->connectionName}->close();
+		} else { // Otherwise, we use simple array, from getItems() sitemap method
+			do {
+				if ($items = $sitemap->getItems($offset, $this->maxUrlsPerFile)) {
+					$file                 = $this->write($this->toString($items, $sitemap), $sitemap, $counter);
+					$this->indexSitemap[] = [
+						'sitemap' => $sitemap,
+						'date'    => $sitemap->getLastmod($items[0]),
+						'file'    => $file,
+					];
+					$offset               += $this->maxUrlsPerFile;
+					$counter++;
+				}
+			} while ($items);
+		}
 	}
 
 	/**
