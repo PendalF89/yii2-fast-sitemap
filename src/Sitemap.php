@@ -9,222 +9,227 @@ use yii\db\Query;
 
 class Sitemap extends BaseObject
 {
-	/**
-	 * @var int Max urls in each sitemap file
-	 */
-	public $maxUrlsPerFile = 50000;
+    /**
+     * @var int Max urls in each sitemap file
+     */
+    public $maxUrlsPerFile = 50000;
 
-	/**
-	 * @var bool Whether to compress files with gzip
-	 */
-	public $compressWithGzip = false;
+    /**
+     * @var bool Whether to compress files with gzip
+     */
+    public $compressWithGzip = false;
 
-	/**
-	 * @var string Index sitemap name
-	 */
-	public $indexSitemapName = 'sitemap';
+    /**
+     * @var string Index sitemap name
+     */
+    public $indexSitemapName = 'sitemap';
 
-	/**
-	 * @var string Path to sitemaps
-	 */
-	public $path = '@frontend/web';
+    /**
+     * @var string Lastmod format for date() function in Index Sitemap
+     */
+    public $indexSitemapLastmodFormat = 'c';
 
-	/**
-	 * @var bool Whether to ping search engines if the new index site map is different from the previous one
-	 */
-	public $pingSearchEngines = true;
+    /**
+     * @var string Path to sitemaps
+     */
+    public $path = '@frontend/web';
 
-	/**
-	 * @var string Base domain for urls. For example: https://site.com (without "/" on the end of line
-	 */
-	public $domain;
+    /**
+     * @var bool Whether to ping search engines if the new index site map is different from the previous one
+     */
+    public $pingSearchEngines = true;
 
-	/**
-	 * @var string db connection name
-	 */
-	public $connectionName = 'db';
+    /**
+     * @var string Base domain for urls. For example: https://site.com (without "/" on the end of line
+     */
+    public $domain;
 
-	/**
-	 * @var array Index sitemap data
-	 */
-	protected $indexSitemap = [];
+    /**
+     * @var string db connection name
+     */
+    public $connectionName = 'db';
 
-	/**
-	 * Create sitemap file
-	 *
-	 * @param SitemapInterface $sitemap
-	 */
-	public function create(SitemapInterface $sitemap)
-	{
-		$offset  = 0;
-		$counter = 0;
-		// If we have Query, than we will be use batch() method.
-		if (($query = $sitemap->getItems($offset, $this->maxUrlsPerFile)) instanceof Query) {
-			// this setting need for enable batch() method
-			// see more: https://rmcreative.ru/blog/post/yii2-batch#c11555
-			Yii::$app->{$this->connectionName}->open();
-			Yii::$app->{$this->connectionName}->pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
-			foreach ($query->batch($this->maxUrlsPerFile) as $items) {
-				$file                 = $this->write($this->toString($items, $sitemap), $sitemap, $counter);
-				$this->indexSitemap[] = [
-					'sitemap' => $sitemap,
-					'date'    => $sitemap->getLastmod($items[0]),
-					'file'    => $file,
-				];
-				$counter++;
-			}
-			Yii::$app->{$this->connectionName}->close();
-		} else { // Otherwise, we use simple array, from getItems() sitemap method
-			do {
-				if ($items = $sitemap->getItems($offset, $this->maxUrlsPerFile)) {
-					$file                 = $this->write($this->toString($items, $sitemap), $sitemap, $counter);
-					$this->indexSitemap[] = [
-						'sitemap' => $sitemap,
-						'date'    => $sitemap->getLastmod($items[0]),
-						'file'    => $file,
-					];
-					$offset               += $this->maxUrlsPerFile;
-					$counter++;
-				}
-			} while ($items);
-		}
-	}
+    /**
+     * @var array Index sitemap data
+     */
+    protected $indexSitemap = [];
 
-	/**
-	 * Create index sitemap file and ping Search Engines if is necessary
-	 */
-	public function createIndex()
-	{
-		$oldHash = '';
-		if ($this->pingSearchEngines) {
-			$oldHash = $this->getHashFromIndexSitemap();
-		}
+    /**
+     * Create sitemap file
+     *
+     * @param SitemapInterface $sitemap
+     */
+    public function create(SitemapInterface $sitemap)
+    {
+        $offset  = 0;
+        $counter = 0;
+        // If we have Query, than we will be use batch() method.
+        if (($query = $sitemap->getItems($offset, $this->maxUrlsPerFile)) instanceof Query) {
+            // this setting need for enable batch() method
+            // see more: https://rmcreative.ru/blog/post/yii2-batch#c11555
+            Yii::$app->{$this->connectionName}->open();
+            Yii::$app->{$this->connectionName}->pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+            foreach ($query->batch($this->maxUrlsPerFile) as $items) {
+                $file                 = $this->write($this->toString($items, $sitemap), $sitemap, $counter);
+                $this->indexSitemap[] = [
+                    'sitemap' => $sitemap,
+                    'date'    => $sitemap->getLastmod($items[0]),
+                    'file'    => $file,
+                ];
+                $counter++;
+            }
+            Yii::$app->{$this->connectionName}->close();
+        } else { // Otherwise, we use simple array, from getItems() sitemap method
+            do {
+                if ($items = $sitemap->getItems($offset, $this->maxUrlsPerFile)) {
+                    $file                 = $this->write($this->toString($items, $sitemap), $sitemap, $counter);
+                    $this->indexSitemap[] = [
+                        'sitemap' => $sitemap,
+                        'date'    => $sitemap->getLastmod($items[0]),
+                        'file'    => $file,
+                    ];
+                    $offset               += $this->maxUrlsPerFile;
+                    $counter++;
+                }
+            } while ($items);
+        }
+    }
 
-		usort($this->indexSitemap, function ($a, $b) {
-			$a = strtotime($a['date']);
-			$b = strtotime($b['date']);
-			if ($a === $b) {
-				return 0;
-			}
+    /**
+     * Create index sitemap file and ping Search Engines if is necessary
+     */
+    public function createIndex()
+    {
+        $oldHash = '';
+        if ($this->pingSearchEngines) {
+            $oldHash = $this->getHashFromIndexSitemap();
+        }
 
-			return ($a > $b) ? -1 : 1;
-		});
-		$str = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-		foreach ($this->indexSitemap as $item) {
-			$str .= '<sitemap><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
-			if ($item['date']) {
-				$str .= '<lastmod>' . date('c', strtotime($item['date'])) . '</lastmod>';
-			}
-			$str .= '</sitemap>';
-		}
-		$str  .= '</sitemapindex>';
-		$file = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $this->indexSitemapName . '.xml';
+        usort($this->indexSitemap, function ($a, $b) {
+            $a = strtotime($a['date']);
+            $b = strtotime($b['date']);
+            if ($a === $b) {
+                return 0;
+            }
 
-		if ($this->compressWithGzip) {
-			$this->writeGZipFile($file, $str);
-		} else {
-			file_put_contents($file, $str);
-		}
+            return ($a > $b) ? -1 : 1;
+        });
+        $str = '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        foreach ($this->indexSitemap as $item) {
+            $str .= '<sitemap><loc>' . $this->domain . '/' . basename($item['file']) . ($this->compressWithGzip ? '.gz' : '') . '</loc>';
+            if ($item['date']) {
+                $str .= '<lastmod>' . date($this->indexSitemapLastmodFormat, strtotime($item['date'])) . '</lastmod>';
+            }
+            $str .= '</sitemap>';
+        }
+        $str  .= '</sitemapindex>';
+        $file = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $this->indexSitemapName . '.xml';
 
-		if ($this->pingSearchEngines) {
-			$newHash = $this->getHashFromIndexSitemap();
-			if ($oldHash !== $newHash) {
-				$this->ping();
-			}
-		}
-	}
+        if ($this->compressWithGzip) {
+            $this->writeGZipFile($file, $str);
+        } else {
+            file_put_contents($file, $str);
+        }
 
-	/**
-	 * Ping Search Engines
-	 */
-	protected function ping()
-	{
-		$sitemapUrl      = $this->domain . '/' . $this->indexSitemapName . '.xml' . ($this->compressWithGzip ? '.gz' : '');
-		$searchEngines[] = 'https://www.google.com/ping?' . http_build_query(['sitemap' => $sitemapUrl]);
-		$searchEngines[] = 'https://www.bing.com/webmaster/ping.aspx?' . http_build_query(['siteMap' => $sitemapUrl]);
-		foreach ($searchEngines as $url) {
-			file_get_contents($url);
-		}
-	}
+        if ($this->pingSearchEngines) {
+            $newHash = $this->getHashFromIndexSitemap();
+            if ($oldHash !== $newHash) {
+                $this->ping();
+            }
+        }
+    }
 
-	/**
-	 * Read hash from index sitemap file
-	 *
-	 * @return string
-	 */
-	protected function getHashFromIndexSitemap()
-	{
-		$file = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $this->indexSitemapName . '.xml';
-		if (!file_exists($file)) {
-			$file .= '.gz';
-			if (!file_exists($file)) {
-				return '';
-			}
-		}
+    /**
+     * Ping Search Engines
+     */
+    protected function ping()
+    {
+        $sitemapUrl      = $this->domain . '/' . $this->indexSitemapName . '.xml' . ($this->compressWithGzip ? '.gz' : '');
+        $searchEngines[] = 'https://www.google.com/ping?' . http_build_query(['sitemap' => $sitemapUrl]);
+        $searchEngines[] = 'https://www.bing.com/webmaster/ping.aspx?' . http_build_query(['siteMap' => $sitemapUrl]);
+        foreach ($searchEngines as $url) {
+            file_get_contents($url);
+        }
+    }
 
-		return md5(file_get_contents($file));
-	}
+    /**
+     * Read hash from index sitemap file
+     *
+     * @return string
+     */
+    protected function getHashFromIndexSitemap()
+    {
+        $file = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $this->indexSitemapName . '.xml';
+        if (!file_exists($file)) {
+            $file .= '.gz';
+            if (!file_exists($file)) {
+                return '';
+            }
+        }
 
-	/**
-	 * Create sitemap content from items
-	 *
-	 * @param $items
-	 * @param SitemapInterface $sitemap
-	 *
-	 * @return string
-	 */
-	protected function toString($items, SitemapInterface $sitemap)
-	{
-		$str = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-		foreach ($items as $item) {
-			$str .= '<url><loc>' . $this->domain . $sitemap->getUrl($item) . '</loc>';
-			if ($lastmod = $sitemap->getLastmod($item)) {
-				$str .= '<lastmod>' . $lastmod . '</lastmod>';
-			}
-			$str .= '</url>';
-		}
-		$str .= '</urlset>';
+        return md5(file_get_contents($file));
+    }
 
-		return $str;
-	}
+    /**
+     * Create sitemap content from items
+     *
+     * @param $items
+     * @param SitemapInterface $sitemap
+     *
+     * @return string
+     */
+    protected function toString($items, SitemapInterface $sitemap)
+    {
+        $str = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        foreach ($items as $item) {
+            $str .= '<url><loc>' . $this->domain . $sitemap->getUrl($item) . '</loc>';
+            if ($lastmod = $sitemap->getLastmod($item)) {
+                $str .= '<lastmod>' . $lastmod . '</lastmod>';
+            }
+            $str .= '</url>';
+        }
+        $str .= '</urlset>';
 
-	/**
-	 * Write sitemap file
-	 *
-	 * @param $str
-	 * @param SitemapInterface $sitemap
-	 * @param $counter
-	 *
-	 * @return string
-	 */
-	protected function write($str, SitemapInterface $sitemap, $counter)
-	{
-		$prefix = $counter ? "-$counter" : '';
-		$file   = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $sitemap->getName() . $prefix . '.xml';
+        return $str;
+    }
 
-		if ($this->compressWithGzip) {
-			$this->writeGZipFile($file, $str);
-		} else {
-			file_put_contents($file, $str);
-		}
+    /**
+     * Write sitemap file
+     *
+     * @param $str
+     * @param SitemapInterface $sitemap
+     * @param $counter
+     *
+     * @return string
+     */
+    protected function write($str, SitemapInterface $sitemap, $counter)
+    {
+        $prefix = $counter ? "-$counter" : '';
+        $file   = Yii::getAlias($this->path) . DIRECTORY_SEPARATOR . $sitemap->getName() . $prefix . '.xml';
 
-		return $file;
-	}
+        if ($this->compressWithGzip) {
+            $this->writeGZipFile($file, $str);
+        } else {
+            file_put_contents($file, $str);
+        }
 
-	/**
-	 * Save GZipped file.
-	 *
-	 * @param string $content
-	 * @param string $filename
-	 *
-	 * @return bool
-	 */
-	protected function writeGZipFile($filename, $content)
-	{
-		$filename .= '.gz';
-		$file     = gzopen($filename, 'w');
-		gzwrite($file, $content);
+        return $file;
+    }
 
-		return gzclose($file);
-	}
+    /**
+     * Save GZipped file.
+     *
+     * @param string $content
+     * @param string $filename
+     *
+     * @return bool
+     */
+    protected function writeGZipFile($filename, $content)
+    {
+        $filename .= '.gz';
+        $file     = gzopen($filename, 'w');
+        gzwrite($file, $content);
+
+        return gzclose($file);
+    }
 }
